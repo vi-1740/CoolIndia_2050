@@ -1,11 +1,14 @@
-
 import os
 import joblib
 import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
 
-PROJECT_PATH = r"C:\Users\Vipra\Desktop\CoolIndia_2050"
+PROJECT_PATH = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
 
 OUTPUT_PATH = os.path.join(
     PROJECT_PATH,
