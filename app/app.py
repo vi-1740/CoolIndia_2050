@@ -18,7 +18,7 @@ OUTPUT_PATH = os.path.join(
 DATA_PATH = os.path.join(
     PROJECT_PATH,
     "data",
-    "final_electricity_temperature_2020_2024.csv"
+    "monthly_temp_normal.csv"
 )
 
 lasso_model = joblib.load(
@@ -35,27 +35,21 @@ ra_scaler = joblib.load(
     )
 )
 
-df = pd.read_csv(DATA_PATH)
+monthly_temp_normal = pd.read_csv(
+    DATA_PATH
+)
 
-df["date"] = pd.to_datetime(df["date"])
-
-df["month"] = df["date"].dt.month
-
-monthly_temp_normal = (
-    df.groupby(
-        ["electricity_name", "month"]
-    )["MaxTemp_C"]
-    .mean()
-    .reset_index()
-    .rename(
-        columns={
-            "MaxTemp_C": "temp_normal"
-        }
-    )
+monthly_temp_normal = monthly_temp_normal.rename(
+    columns={
+        "state": "electricity_name",
+        "normal_temperature": "temp_normal"
+    }
 )
 
 states = sorted(
-    df["electricity_name"]
+    monthly_temp_normal[
+        "electricity_name"
+    ]
     .dropna()
     .unique()
 )
@@ -66,15 +60,18 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("⚡ PowerPulse India")
+st.title(
+    "⚡ PowerPulse India"
+)
 
 st.subheader(
     "Future Electricity Demand Intelligence"
 )
 
 st.write(
-    "Create a future temperature scenario and estimate "
-    "how electricity demand may differ from its normal level."
+    "Explore how a future temperature scenario may "
+    "affect electricity demand compared with the "
+    "historical normal level."
 )
 
 st.divider()
@@ -90,13 +87,17 @@ with col1:
 
 with col2:
 
-    tomorrow = date.today() + timedelta(days=1)
+    tomorrow = (
+        date.today()
+        + timedelta(days=1)
+    )
 
     future_date = st.date_input(
         "📅 Future Prediction Date",
         value=tomorrow,
         min_value=tomorrow
     )
+
 
 max_temp = st.number_input(
     "🌡️ Expected Maximum Temperature (°C)",
@@ -105,6 +106,7 @@ max_temp = st.number_input(
     value=35.0,
     step=0.1
 )
+
 
 st.write("")
 
@@ -123,15 +125,20 @@ if predict_button:
 
     normal_row = monthly_temp_normal[
         (
-            monthly_temp_normal["electricity_name"]
+            monthly_temp_normal[
+                "electricity_name"
+            ]
             == state
         )
         &
         (
-            monthly_temp_normal["month"]
+            monthly_temp_normal[
+                "month"
+            ]
             == month
         )
     ]
+
 
     if normal_row.empty:
 
@@ -144,11 +151,14 @@ if predict_button:
     else:
 
         normal_temperature = float(
-            normal_row["temp_normal"].iloc[0]
+            normal_row[
+                "temp_normal"
+            ].iloc[0]
         )
 
         temperature_anomaly = (
-            max_temp - normal_temperature
+            max_temp
+            - normal_temperature
         )
 
         squared_temperature_anomaly = (
@@ -192,21 +202,24 @@ if predict_button:
         st.divider()
 
         st.subheader(
-            "📊 Demand Outlook"
+            "📊 Future Demand Outlook"
         )
 
+
         result1, result2, result3 = st.columns(3)
+
 
         with result1:
 
             st.metric(
-                "Expected Change in Electricity Demand",
+                "Expected Demand Anomaly",
                 f"{prediction:+.2f} MU"
             )
 
             st.caption(
-                "MU = Million Units of electricity"
+                "MU means Million Units of electricity"
             )
+
 
         with result2:
 
@@ -215,22 +228,26 @@ if predict_button:
                 f"{max_temp:.1f} °C"
             )
 
+
         with result3:
 
             st.metric(
-                "Normal Temperature",
+                "Historical Normal Temperature",
                 f"{normal_temperature:.1f} °C"
             )
 
+
         st.caption(
-            "Positive values indicate higher-than-normal "
-            "demand. Negative values indicate "
-            "lower-than-normal demand."
+            "A positive value indicates demand above "
+            "the historical normal level. A negative "
+            "value indicates demand below the historical "
+            "normal level."
         )
 
         st.subheader(
             "💡 What does this mean?"
         )
+
 
         if prediction > 10:
 
@@ -239,15 +256,19 @@ if predict_button:
             )
 
             st.write(
-                "Electricity demand may be substantially "
-                "higher than normal."
+                "The selected temperature scenario is "
+                "associated with substantially higher "
+                "electricity demand than the historical "
+                "normal level."
             )
 
             st.info(
-                "Planning suggestion: review available "
-                "supply capacity and closely monitor "
-                "peak-demand conditions."
+                "Planning insight: electricity system "
+                "planners may consider additional supply "
+                "capacity and closer monitoring during "
+                "potential peak demand conditions."
             )
+
 
         elif prediction > 2:
 
@@ -256,15 +277,17 @@ if predict_button:
             )
 
             st.write(
-                "Electricity demand may be somewhat "
-                "higher than normal."
+                "The selected temperature scenario is "
+                "associated with moderately higher "
+                "electricity demand than normal."
             )
 
             st.info(
-                "Planning suggestion: maintain regular "
-                "monitoring and prepare for a possible "
-                "increase in demand."
+                "Planning insight: increased monitoring "
+                "of electricity demand may be useful "
+                "under this temperature scenario."
             )
+
 
         elif prediction >= -2:
 
@@ -273,14 +296,17 @@ if predict_button:
             )
 
             st.write(
-                "Electricity demand is expected to remain "
-                "close to its normal level."
+                "The selected temperature scenario is "
+                "associated with electricity demand "
+                "close to the historical normal level."
             )
 
             st.info(
-                "Planning suggestion: continue normal "
-                "monitoring and routine supply planning."
+                "Planning insight: demand conditions "
+                "appear relatively close to the normal "
+                "level for this scenario."
             )
+
 
         elif prediction >= -10:
 
@@ -289,15 +315,17 @@ if predict_button:
             )
 
             st.write(
-                "Electricity demand may be somewhat "
-                "lower than normal."
+                "The selected temperature scenario is "
+                "associated with moderately lower "
+                "electricity demand than normal."
             )
 
             st.info(
-                "Planning suggestion: continue monitoring "
-                "while accounting for the possibility "
-                "of lower demand."
+                "Planning insight: electricity demand "
+                "may remain below the historical normal "
+                "level under this scenario."
             )
+
 
         else:
 
@@ -306,76 +334,88 @@ if predict_button:
             )
 
             st.write(
-                "Electricity demand may be substantially "
-                "lower than normal."
+                "The selected temperature scenario is "
+                "associated with substantially lower "
+                "electricity demand than normal."
             )
 
             st.info(
-                "Planning suggestion: review supply "
-                "planning according to the expected "
-                "lower demand."
+                "Planning insight: demand conditions "
+                "may remain considerably below the "
+                "historical normal level."
             )
 
         st.subheader(
             "🌡️ Temperature Insight"
         )
 
+
         difference = (
-            max_temp - normal_temperature
+            max_temp
+            - normal_temperature
         )
+
 
         if difference > 0:
 
             st.write(
                 f"The expected temperature is "
-                f"**{difference:.1f}°C above** the historical "
-                f"normal for {state} during this month."
+                f"**{difference:.1f} °C above** the "
+                f"historical normal for {state} "
+                f"during this month."
             )
+
 
         elif difference < 0:
 
             st.write(
                 f"The expected temperature is "
-                f"**{abs(difference):.1f}°C below** the historical "
-                f"normal for {state} during this month."
+                f"**{abs(difference):.1f} °C below** "
+                f"the historical normal for {state} "
+                f"during this month."
             )
+
 
         else:
 
             st.write(
                 f"The expected temperature is equal to "
-                f"the historical normal for {state} during "
-                f"this month."
+                f"the historical normal for {state} "
+                f"during this month."
             )
 
         with st.expander(
             "🔬 View Technical Model Information"
         ):
 
-            technical_data = pd.DataFrame({
-                "Model Information": [
-                    "Model",
-                    "Model Test R²",
-                    "State",
-                    "Prediction Date",
-                    "Maximum Temperature",
-                    "Temperature Anomaly",
-                    "Squared Temperature Anomaly",
-                    "Heat Above 35°C",
-                    "Recent Demand Assumption"
-                ],
-                "Value": [
-                    "Lasso Regression",
-                    "0.9042",
-                    state,
-                    selected_date.strftime("%Y-%m-%d"),
-                    f"{max_temp:.2f} °C",
-                    f"{temperature_anomaly:.2f} °C",
-                    f"{squared_temperature_anomaly:.2f}",
-                    f"{heat_above_35:.2f} °C",
-                    "Normal demand level"
-                ]
-            })
+            technical_data = pd.DataFrame(
+                {
+                    "Model Information": [
+                        "Final Model",
+                        "Model Test R²",
+                        "State",
+                        "Prediction Date",
+                        "Expected Maximum Temperature",
+                        "Temperature Anomaly",
+                        "Squared Temperature Anomaly",
+                        "Heat Above 35 °C",
+                        "Recent Demand Assumption"
+                    ],
+                    "Value": [
+                        "Lasso Regression",
+                        "0.9042",
+                        state,
+                        selected_date.strftime(
+                            "%Y-%m-%d"
+                        ),
+                        f"{max_temp:.2f} °C",
+                        f"{temperature_anomaly:.2f} °C",
+                        f"{squared_temperature_anomaly:.2f}",
+                        f"{heat_above_35:.2f} °C",
+                        "Normal demand level"
+                    ]
+                }
+            )
 
             st.dataframe(
                 technical_data,
@@ -386,8 +426,11 @@ if predict_button:
 st.divider()
 
 st.caption(
-    "PowerPulse India is a research prototype using "
-    "the trained Lasso Regression model. A live "
+    "PowerPulse India is a research prototype based "
+    "on a trained Lasso Regression model. The application "
+    "uses historical temperature normals and a user "
+    "defined future temperature scenario. A live "
     "operational forecasting system would require "
-    "real-time electricity-demand data and weather forecasts."
+    "real time electricity demand data and reliable "
+    "weather forecasts."
 )
